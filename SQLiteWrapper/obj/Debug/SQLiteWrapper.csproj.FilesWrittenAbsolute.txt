@@ -1,5 +1,0 @@
-/home/devin/Projects/SQLiteWrapper/SQLiteWrapper/obj/Debug/.NETFramework,Version=v4.5.AssemblyAttribute.cs
-/home/devin/Projects/SQLiteWrapper/SQLiteWrapper/bin/Debug/SQLiteWrapper.dll.mdb
-/home/devin/Projects/SQLiteWrapper/SQLiteWrapper/bin/Debug/SQLiteWrapper.dll
-/home/devin/Projects/SQLiteWrapper/SQLiteWrapper/obj/Debug/SQLiteWrapper.dll
-/home/devin/Projects/SQLiteWrapper/SQLiteWrapper/obj/Debug/SQLiteWrapper.dll.mdb

@@ -3,7 +3,7 @@ using System.Data;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 
-namespace ConfigManager
+namespace SQLiteWrapper
 {
 	/// <summary>
 	/// A more abstract wrapper layer for SQLite operations -- hides 

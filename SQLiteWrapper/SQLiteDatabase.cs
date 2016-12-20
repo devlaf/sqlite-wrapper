@@ -5,7 +5,7 @@ using System.Data;
 using System.IO;
 using Mono.Data.Sqlite;
 
-namespace ConfigManager
+namespace SQLiteWrapper
 {
 	/// <summary>
 	/// A more abstract wrapper layer for SQLite operations -- provides a

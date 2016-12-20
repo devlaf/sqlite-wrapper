@@ -46,13 +46,15 @@ namespace SQLiteWrapper
 
 		#region DatabaseConnectionInfo
 		/// <summary>
-		/// Defines the location of the SQLite database file.  This struct will be required as part of the constructor for the SQLiteDatabase class.  
+		/// Defines the location of the SQLite database file.  This struct will be required as part of
+		///  the constructor for the SQLiteDatabase class.  
 		/// </summary>
 		/// <remarks>
-		/// There are two ways that the connection string can be defined.  The primary way is using an enviornment variable.  If that enviornment
-		/// variable does not exist on the system, then this library will use a backup string specified as part of this struct.  So it is up to
-		/// the caller of this class to specify an enviornment variable name and a hardcoded backup path, and then they decide which they want to use
-		/// by either defining the enviornment variable or not.
+		/// There are two ways that the connection string can be defined.  The primary way is using an 
+		/// enviornment variable.  If that enviornment variable does not exist on the system, then this 
+		/// library will use a backup string specified as part of this struct.  So it is up to the caller 
+		/// of this class to specify an enviornment variable name and a hardcoded backup path, and then 
+		/// they decide which they want to use by either defining the enviornment variable or not.
 		/// </remarks>
 		public struct DatabaseLocationInfo
 		{
@@ -60,12 +62,14 @@ namespace SQLiteWrapper
 			public readonly string DBLocationBackupPath;
 
 			/// <summary>
-			/// A struct that defines the connection info, specifically where the .sqlite file is located, for the sqlite database
+			/// A struct that defines the connection info, specifically where the .sqlite file is located, 
+			/// for the sqlite database
 			/// </summary>
-			/// <param name="dBLocationEnviornmentVariableName">The name of an enviornment variable which can define the path to the 
-			/// database.  If this environment variable exists, it takes precedence over the secondary backup path specified in dBLocationBackupPath.</param>
-			/// <param name="dBLocationBackupPath">If the enviornment variable does not exist, the SQLiteDatabase class will use this 
-			/// to determine the location of the DB file.</param>
+			/// <param name="dBLocationEnviornmentVariableName">The name of an enviornment variable which 
+			/// can define the path to the database.  If this environment variable exists, it takes precedence 
+			/// over the secondary backup path specified in dBLocationBackupPath.</param>
+			/// <param name="dBLocationBackupPath">If the enviornment variable does not exist, the 
+			/// SQLiteDatabase class will use this to determine the location of the DB file.</param>
 			public DatabaseLocationInfo(string dBLocationEnviornmentVariableName, string dBLocationBackupPath)
 			{
 				DBLocationEnviornmentVariableName = dBLocationEnviornmentVariableName;
@@ -107,13 +111,16 @@ namespace SQLiteWrapper
 		/// </remarks>
 		private string GetConnectionString()
 		{
-			#if DEBUG	// For integration testing, we want to disable caching of the source string so we can dynamically switch the database to use a mock one.
+			// For integration testing, we want to disable caching of the source string so we can 
+			// dynamically switch the database to use a mocked one.
+			#if DEBUG
 			CachedDatabaseConnectionString = null;
 			#endif
 
 			if (CachedDatabaseConnectionString == null)
 			{
-				string databaseFilepath = System.Environment.GetEnvironmentVariable(ConnectionInfo.DBLocationEnviornmentVariableName) ?? ConnectionInfo.DBLocationBackupPath;
+				string databaseFilepath = Environment.GetEnvironmentVariable(ConnectionInfo.DBLocationEnviornmentVariableName) ?? 
+					ConnectionInfo.DBLocationBackupPath;
 				Directory.CreateDirectory(System.IO.Path.GetDirectoryName(databaseFilepath));
 
 				string datasource =  string.Format("Data Source={0};FailIfMissing=False", databaseFilepath);
@@ -185,7 +192,10 @@ namespace SQLiteWrapper
 			{
 				if(ex is DatabaseContentException)
 					throw;
-				string errorMessage = string.Format("Error registered in connecting to the SQLITE database at [{0}] for query [{1}].", CachedDatabaseConnectionString, sql);
+
+				string errorMessage = string.Format("Error registered in connecting to the SQLITE database at [{0}] for query [{1}].",
+					CachedDatabaseConnectionString, sql);
+
 				LogError(string.Format("{0}.  Error exception:{1}{2}", errorMessage, System.Environment.NewLine, ex.ToString()));
 				throw new DatabaseConnectionException(errorMessage, ex);
 			}

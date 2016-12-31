@@ -17,7 +17,7 @@ Database.ExecuteNonQuery(sql);
 License (BEER-WARE, Revision 42)
 ---
 **Note:** 
-A tip of the hat (and perhaps a beer) goes to [Poul-Henning Kamp](https://people.freebsd.org/~phk/) for authoring the following beerware license.  
+Thanks (and perhaps a beer) goes to [Poul-Henning Kamp](https://people.freebsd.org/~phk/) for authoring the following beerware license.  
 
 **License Text:** 
 ```

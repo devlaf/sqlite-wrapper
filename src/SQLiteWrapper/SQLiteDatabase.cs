@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Data;
 using System.IO;
-using Mono.Data.Sqlite;
+using Microsoft.Data.Sqlite;
 
 namespace SQLiteWrapper
 {
@@ -92,27 +91,28 @@ namespace SQLiteWrapper
         /// Serve/Create the database connection settings.
         /// </summary>
         /// <remarks>
-        /// There's a lot going on here:
-        /// - Path of the database file is specified here.  It is hard to make this an easily
-        /// configurable setting as all of our configuration info exists in the database that we
-        /// are connecting to.  I suppose this should be optionally configurable via an enviornment
-        /// variable.
-        /// - FailIfMissing specification instructs the library to create the database if it does not
-        /// exist.
-        /// - Instructed the library to use connection pooling.  Fortunately this is all handled under
+        /// Ultimately we're simply specifying the database filepath here; however, there's quite a lot that's 
+        /// going on internally by default.  The Microsoft.Data.SQLite library (being somewhat juvenile?)
+        /// does not support several of the settings that we would typically like to express explicitly
+        /// as part of the connection string (ex. FailIfMissing, Version, Pooling, Pool Size.)
+        /// 
+        /// My understanding of the non-customizable behavior is that:
+        /// - If the database if it does not exist, the SQLiteConnection constructor will create it.
+        /// - The library will by default use connection pooling.  Fortunately this is all handled under
         /// the covers - In this abstraction, closing the SqliteConnection object does not actually
         /// close the connection, but returns it to the internal pool.
-        /// - Version 3 is the latest
+        /// - Default max pool size is 100.
+        /// - Will use version 3.X of SQLite native libs
         /// 
         /// I cache the conection string here for the lifetime of the application in order to avoid doing
         /// the enviornment variable lookup each time, however I could see some value in being able to 
-        /// dynamically switch the database location while the application is runnning.  Perhaps I could
-        /// implement some sort of enviornment-variable-changed event, but I'll move on for now.
+        /// dynamically switch the database location while the application continues runnning.  For now, we
+        /// only do that as part of debug builds to facilitate integration tests.
         /// </remarks>
         private string GetConnectionString()
         {
             // For integration testing, we want to disable caching of the source string so we can 
-            // dynamically switch the database to use a mocked one.
+            // dynamically switch the database to use a mocked(?) one.
             #if DEBUG
             CachedDatabaseConnectionString = null;
             #endif
@@ -123,10 +123,7 @@ namespace SQLiteWrapper
                               ConnectionInfo.DBLocationBackupPath;
                 Directory.CreateDirectory(System.IO.Path.GetDirectoryName(databaseFilepath));
 
-                string datasource = string.Format("Data Source={0};FailIfMissing=False", databaseFilepath);
-                const string version = "Version=3";
-                const string poooling = "Pooling=True;Max Pool Size=100";
-                CachedDatabaseConnectionString = string.Format("{0};{1};{2}", datasource, version, poooling);
+                CachedDatabaseConnectionString = string.Format("Data Source={0}", databaseFilepath);
             }
 
             return CachedDatabaseConnectionString;
@@ -142,13 +139,18 @@ namespace SQLiteWrapper
         /// <exception cref="DatabaseConnectionException">
         /// Could not connect to the database file.
         /// </exception>
-        public DataTable GetDataTable(string sql, List<Tuple<string, object>> parameters = null)
+        public List<Dictionary<string, object>> GetTable(string sql, List<Tuple<string, object>> parameters = null)
         {
-            return ExecuteSQLiteCommand<DataTable>(sql, parameters, x => {
-                    var dt = new DataTable();
-                    dt.Load(x.ExecuteReader());
-                    return dt;
-                });
+            return ExecuteSQLiteCommand<List<Dictionary<string, object>>>(sql, parameters, x => ExtractRowData(x.ExecuteReader()).ToList());
+        }
+
+        private static IEnumerable<Dictionary<string, object>> ExtractRowData(SqliteDataReader data)
+        {
+            while (data.Read())
+            {
+                yield return Enumerable.Range(0, data.FieldCount).Aggregate(new Dictionary<string, object>(), 
+                    (dict, index) => { dict.Add(data.GetName(index), data.GetValue(index)); return dict; });
+            }
         }
 
         /// <summary>
@@ -180,8 +182,7 @@ namespace SQLiteWrapper
             {
                 con.Open();
 
-                SqliteCommand command = new SqliteCommand(con);
-                command.CommandText = sql;
+                SqliteCommand command = new SqliteCommand(sql, con);
                 if(parameters != null)
                     command.Parameters.AddRange(parameters.Select(x => new SqliteParameter(x.Item1, x.Item2)).ToArray());
 
@@ -220,11 +221,12 @@ namespace SQLiteWrapper
         /// </summary>
         public void ClearDB()
         {
-            var tables = GetDataTable("select NAME from " + MasterSystemTable + " where type='table' order by NAME;");
+            var tables = GetTable("select NAME from " + MasterSystemTable + " where type='table' order by NAME;");
 
-            foreach(DataRow table in tables.Rows)
+            foreach(var row in tables)
             {
-                ClearTable(table["NAME"].ToString());
+                var tableName = row["name"].ToString();
+                ExecuteNonQuery(string.Format("DROP TABLE IF EXISTS '{0}'", tableName));
             }
         }
 
@@ -232,10 +234,10 @@ namespace SQLiteWrapper
         ///  Clear all data from a specific table.
         /// </summary>
         /// <param name="table">The name of the table to clear.</param>
-        public void ClearTable(String table)
+        public void ClearTable(string table)
         {
             if(TableExists(table))
-                ExecuteNonQuery(String.Format("delete from {0};", table));
+                ExecuteNonQuery(string.Format("delete from {0};", table));
         }
 
         /// <summary>
@@ -244,17 +246,8 @@ namespace SQLiteWrapper
         /// <returns>The all table names.</returns>
         public List<string> GetAllTableNames()
         {
-            var retval = new List<string>();
-            DataTable tables = GetDataTable("select NAME from " + MasterSystemTable + " where type='table' order by NAME;");
-            if(tables.Columns.Count != 1)
-                throw new DatabaseContentException("Unexpected Master System table format - Potential corruption.");
-
-            foreach(DataRow table in tables.Rows)
-            {
-                retval.Add(table[0].ToString());
-            }
-
-            return retval;
+            var tables = GetTable("select NAME from " + MasterSystemTable + " where type='table' order by NAME;");
+            return tables.Select(x => x["name"] as string).ToList();
         }
 
         private bool TableExists(string tableName)

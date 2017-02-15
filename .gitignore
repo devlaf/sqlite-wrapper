@@ -2,6 +2,9 @@
 *.suo
 *.user
 *.userprefs
+*.lock.json
+TestResult.xml
+.vs/
 
 # Build
 [Dd]ebug/
